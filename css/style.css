@@ -10,6 +10,10 @@
   --container: 1290px;
   --stack-top: 70px;
   --stack-step: 11px;
+  /* Real trailing content after the last card reaches its sticky slot.
+     It must be rendered as an actual flow spacer (see ::after below).
+     Padding alone does not reliably extend the sticky containment area. */
+  --stack-end-hold: clamp(220px, 28vh, 300px);
 }
 
 * { box-sizing: border-box; }
@@ -109,7 +113,17 @@ a { color: inherit; }
 .region-stack { position: relative; }
 
 .region-stack.has-multiple {
-  padding-bottom: clamp(80px, 10vh, 120px);
+  /* Keep the stack container itself simple. The end-hold distance is an
+     actual flow spacer below, not padding: sticky positioning uses the
+     containing block's content area when resolving its bottom boundary. */
+  padding-bottom: 0;
+}
+
+.region-stack.has-multiple::after {
+  content: "";
+  display: block;
+  height: var(--stack-end-hold);
+  pointer-events: none;
 }
 
 .region-card {
@@ -323,6 +337,7 @@ a { color: inherit; }
   :root { --stack-top: 24px; --stack-step: 8px; }
   .container { width: min(var(--container), calc(100% - 32px)); }
   .region-stack.has-multiple { padding-bottom: 0; }
+  .region-stack.has-multiple::after { display: none; }
   .region-stack.has-multiple .region-card {
     position: relative;
     top: auto;

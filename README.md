@@ -53,8 +53,8 @@ position: sticky;
 ## 目录结构
 
 ```text
-regional-solutions-stacked-cards/
-├─ demo-multiple.html
+sticky-stacked-regional-solutions/
+├─ index.html
 ├─ css/
 │  └─ style.css
 ├─ js/
@@ -72,7 +72,7 @@ regional-solutions-stacked-cards/
 
 | 文件 | 作用 |
 |---|---|
-| `demo-multiple.html` | 项目主页面，包含 Regional Solutions 示例结构 |
+| `index.html` | 项目主页面，包含 Regional Solutions 示例结构 |
 | `css/style.css` | 页面布局、Sticky Stack、响应式、3D / QR 交互样式 |
 | `js/app.js` | 自动识别多卡模式，并为每张卡片写入序号与索引 |
 | `images/region-*.svg` | 900 × 600 SVG 场景占位图 |
@@ -90,7 +90,7 @@ regional-solutions-stacked-cards/
 下载后直接打开：
 
 ```text
-demo-multiple.html
+index.html
 ```
 
 即可本地预览。
@@ -166,13 +166,43 @@ has-multiple
 ```css
 --stack-top: 70px;
 --stack-step: 11px;
+--stack-end-hold: clamp(220px, 28vh, 300px);
 ```
 
 ### 参数含义
 
 - `--stack-top`：第一张卡片吸附到浏览器顶部后的距离。
-- `--stack-step`：后续卡片相对于上一张卡片额外向下错开的距离。
+- `--stack-step`：后续卡片相对于上一张卡片额外向下错开的距离，决定叠层露出的统一间距。
+- `--stack-end-hold`：最后一张卡片到达目标 Sticky 位置后，继续保持完整叠层状态的滚动距离。
 - `z-index`：保证后面的卡片叠加到前面的卡片上方。
+
+### 为什么需要 `--stack-end-hold`
+
+Sticky 卡片在进入目标位置之前仍处于正常滚动阶段，因此最后一张卡片刚进入叠层区域时，视觉间距会逐步收拢。真正完成叠加后，每张卡片之间的露出距离统一由 `--stack-step` 控制。
+
+如果父容器底部预留距离太短，最后一张卡片刚到达正确位置就会马上受到父容器底部约束并开始离场，于是用户很难看到稳定、等距的最终叠层状态。
+
+本版本增加 `--stack-end-hold`，为最后一张卡片保留更充足的“收尾停留区”，使 01～04 完成叠加后能够稳定保持统一层间距，再自然离开当前模块。
+
+### 为什么需要 `--stack-end-hold`
+
+Sticky 卡片在进入目标位置之前仍处于正常滚动阶段，因此最后一张卡片刚进入叠层区域时，视觉间距会逐步收拢。真正完成叠加后，每张卡片之间的露出距离统一由 `--stack-step` 控制。
+
+需要注意：**不能只通过 `padding-bottom` 延长最后一张卡片的 Sticky 停留时间。** 实测中，padding 虽然增加了父容器视觉高度，但不会稳定延长 Sticky 元素用于计算底部边界的有效内容区域，因此第四张到位后，前几张卡片仍可能提前被父容器底部推走。
+
+当前版本改为在 `.region-stack` 末尾使用真实的 CSS 伪元素占位：
+
+```css
+.region-stack.has-multiple::after {
+  content: "";
+  display: block;
+  height: var(--stack-end-hold);
+}
+```
+
+这样 04 到达 `top: 103px` 后，01～04 可以稳定保持 `70 / 81 / 92 / 103px` 的统一叠层位置一段距离，然后整组卡片再一起离开当前模块。
+
+> 不建议把 `--stack-step` 设为 `0`。虽然可以完全隐藏层间距，但会削弱 Sticky Stacked Cards 最重要的“层叠”视觉提示。当前保留小而统一的间距更符合这个组件的设计目标。
 
 如果未来网站顶部有固定 Header，可以适当增加 `--stack-top`。
 
@@ -658,7 +688,7 @@ SVG / PNG
 
 # 维护建议
 
-日常维护主要集中在 `demo-multiple.html`：
+日常维护主要集中在 `index.html`：
 
 ```text
 新增 Region  → 复制 <article class="region-card">
@@ -687,3 +717,14 @@ js/app.js      → 长期稳定
 它利用原生 CSS Sticky 将普通的区域卡片列表转化为更有层次感的滚动叙事，同时通过响应式降级保证手机端体验稳定。
 
 对于需要展示 **1～6 个区域市场、建筑应用、项目场景或解决方案** 的网站，这种结构能够在视觉表现、信息承载、扩展性和长期维护之间取得较好的平衡。
+
+
+---
+
+## v1.0.2
+
+- 优化最后一张卡片完成叠加后的停留距离；
+- 将末尾停留区从 `padding-bottom` 改为真实 `::after` 流式占位，修复第四张到位后叠层间距仍不稳定的问题；
+- 保持 01～04 完成叠加后的层间距统一由 `--stack-step` 控制；
+- 保留移动端原有自然卡片流，不改变手机端交互；
+- 修正 README 中主页面文件名与当前项目目录结构不一致的问题。
